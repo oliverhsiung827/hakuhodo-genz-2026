@@ -302,11 +302,11 @@ add('gen','研究對象',`
 
 add('method','研究資料',`
   <div class="eyebrow">研究方法</div><h2>博報堂獨家資料庫 ＋ Z 世代專案調查</h2>
-  <div class="grid3" style="margin-top:50px;flex:1;grid-auto-rows:1fr">
+  <div class="grid3" style="margin-top:36px;flex:1;min-height:0;grid-template-rows:1fr 1fr;gap:26px">
     ${[['Z世代 家庭訪問調查','大台北/台中/高雄 20–25 歲・N=20','2026 年 1–2 月',1],['Z世代 價值觀調查','北/中/南 18–25 歲 & 50–59 歲・N=600','2026 年 3 月',1],['Z世代 insight 調查','北/中/南 18–61 歲・N=900','2026 年 9 月',1],['Global HABIT','北/中/南 15–59 歲・N=4,500','2025 年 8 月',0],['台灣生活定點調查','北/中/南 15–59 歲・台灣 N=2,000、日本 N=1,000','2026 年 1 月',0],['MIC 媒體接觸狀況調查','北/中/南 20–59 歲・N=1,068','2026 年 2 月',0]]
-      .map((c,k)=>`<div class="card ${c[3]?'soft':''}" style="display:flex;flex-direction:column;justify-content:center">${ib(['home','heart','search','globe','chart','phone'][k],c[3]?'g':'w',28)}<h3 style="font-size:32px;margin-top:14px">${c[0]}</h3><p style="font-size:22px">${c[1]}<br>${c[2]}</p></div>`).join('')}
+      .map((c,k)=>`<div class="card ${c[3]?'soft':''}" style="display:flex;flex-direction:column;justify-content:center;padding:20px 28px;min-height:0">${ib(['home','heart','search','globe','chart','phone'][k],c[3]?'g sm':'w sm',24)}<h3 style="font-size:28px;margin:12px 0 6px">${c[0]}</h3><p style="font-size:20px;line-height:1.5">${c[1]}<br>${c[2]}</p></div>`).join('')}
   </div>
-  <p class="muted" style="font-size:20px;margin-top:16px">綠色：本次 Z 世代專案調查　白色：博報堂既有資料庫</p>`);
+  <p class="muted" style="font-size:18px;margin-top:18px">綠色：本次 Z 世代專案調查　白色：博報堂既有資料庫</p>`);
 
 /* ===== 03 時代背景 ===== */
 add('s3','03 時代背景',`<div class="no">03</div><h2>Z 世代成長的時代背景</h2><p>Z 世代身處的環境與世代意識</p><div class="line"></div>`,'section');
@@ -434,7 +434,7 @@ add('axis1','用力的方向',`
 
 add('axis2','用力的程度',`
   <div class="eyebrow">分析框架</div><h2>第二個軸：用力的<span class="hl">程度</span></h2>
-  <div style="flex:1;position:relative">
+  <div style="flex:1;position:relative;min-height:0">
     <svg viewBox="0 -20 1380 640" width="100%" height="100%"><line class="ln" pathLength="1" x1="690" y1="70" x2="690" y2="540" stroke="#17191a" stroke-width="6"/><polygon points="674,70 690,38 706,70" fill="#17191a"/><polygon points="674,540 690,572 706,540" fill="#17191a"/>
     <text x="690" y="26" text-anchor="middle" font-size="44" font-weight="900">保留</text><text x="690" y="600" text-anchor="middle" font-size="44" font-weight="900">全力</text>
     <text x="740" y="315" font-size="38" font-weight="700" fill="#3b3f3d">要拼，還是不要拼？</text></svg>
@@ -611,12 +611,12 @@ add('keyword','關鍵字：劃界線',`
 
 add('xytable','四種行動的世代比較',`
   <div class="eyebrow">世代比較</div><h2>同樣的四種行動，X/Y 世代和 Z 世代的選擇不同</h2>
-  <div style="display:grid;grid-template-columns:1fr 220px 1fr;gap:16px 20px;margin-top:40px;align-items:stretch">
+  <div style="display:grid;grid-template-columns:1fr 220px 1fr;gap:14px 20px;margin-top:30px;align-items:stretch">
     <div class="pill xy" style="justify-self:center;font-size:24px">X / Y 世代</div><div></div><div class="pill tw" style="justify-self:center;font-size:24px">Z 世代</div>
     ${[['為了向所有人展現更好的自己而發布資訊','定義自我','會根據與他人的關係，選擇性地呈現自己希望被看見的一面','c'],['為了證明自身能力而設定高標準','管理標準','為了保有生活的餘裕，刻意降低標準','y'],['對眼前該做的事踏實努力','投入資源','對於能看到效果的事，才會積極投入心力','pp'],['在既有的角色分工中，享有對自己有利的成果','創造互惠','發揮自己擅長的優勢，同時為他人和自己帶來助益','soft']].map(r=>`
-      <div class="card" style="padding:22px 26px;font-size:28px;color:var(--ink2);display:flex;align-items:center;box-shadow:4px 4px 0 var(--ink)">${r[0]}</div>
+      <div class="card" style="padding:16px 24px;font-size:26px;color:var(--ink2);display:flex;align-items:center;box-shadow:4px 4px 0 var(--ink)">${r[0]}</div>
       <div style="display:flex;align-items:center;justify-content:center"><span class="tagq" style="font-size:26px">${r[1]}</span></div>
-      <div class="card ${r[3]}" style="padding:22px 26px;font-size:28px;font-weight:700;display:flex;align-items:center;box-shadow:4px 4px 0 var(--ink)">${r[2]}</div>`).join('')}
+      <div class="card ${r[3]}" style="padding:16px 24px;font-size:26px;font-weight:700;display:flex;align-items:center;box-shadow:4px 4px 0 var(--ink)">${r[2]}</div>`).join('')}
   </div>`);
 
 add('xyz','X/Y vs Z 世代',`
