@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow">
+<title>劃界線 講座分享</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="deck.css">
+</head>
+<body>
+
+<div id="audience">
+  <div class="wrap"><div class="stage" id="aStage"></div></div>
+</div>
+<div class="hint" id="hint">
+  <kbd>←</kbd><kbd>→</kbd> 換頁　<kbd>F</kbd> 全螢幕　<kbd>G</kbd> 總覽　<kbd>B</kbd> 黑幕　<kbd>P</kbd> 講者視窗
+  <button id="openPresenter">開啟講者視窗（雙螢幕）</button>
+</div>
+
+<div id="presenter">
+  <div class="p-top">
+    <div class="count" id="pCount">1 <span>/ 1</span></div>
+    <div class="timer" id="pTimer">00:00</div>
+    <button id="tToggle">暫停</button><button id="tReset">重設計時</button>
+    <div class="sp"></div>
+    <div class="clock" id="pClock"></div>
+    <button id="pOverview">總覽 G</button>
+    <button id="pBlack">黑幕 B</button>
+    <button id="pAudience">開啟簡報視窗</button>
+  </div>
+  <div class="p-left">
+    <div class="p-cur" id="pCur"><div class="p-label">目前</div><div class="wrap"><div class="stage" id="pStage"></div></div></div>
+    <div class="p-nav"><button id="pPrev">← 上一頁</button><button class="primary" id="pNextBtn">下一頁 →</button></div>
+  </div>
+  <div class="p-right">
+    <div class="p-next" id="pNext"><div class="p-label">下一頁</div><div class="wrap"><div class="stage" id="nStage"></div></div></div>
+    <div class="p-notes">
+      <header><h3>講稿</h3><button id="fMinus" title="字變小">A−</button><button id="fPlus" title="字變大">A+</button></header>
+      <div class="body" id="pNotes"></div>
+    </div>
+  </div>
+</div>
+
+<div id="overview"><h3>點選任一頁跳轉（Esc 關閉）</h3><div class="grid" id="ovGrid"></div></div>
+
+<script src="deck.js"></script>
+<script src="notes.js"></script>
+<script>
+(function(){
+const D = window.DECK, NOTES = window.NOTES || {};
+const N = D.length;
+const isPresenter = new URLSearchParams(location.search).get('view') === 'presenter';
+let idx = 0, black = false, peer = null;
+const store = { get(k){ try{return localStorage.getItem(k)}catch(e){return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch(e){} } };
+const fromHash = parseInt((location.hash||'').slice(1),10);
+if (fromHash>0 && fromHash<=N) idx = fromHash-1;
+
+const SEC_COLORS = ['c-g','c-y','c-p','c-c'];
+function secIndex(i){ let n=0; for(let k=0;k<=i;k++) if(/section/.test(D[k].cls||'')) n++; return n-1; }
+function secDeco(n){
+  const shapes = [
+    `<circle cx="330" cy="250" r="150" fill="#fff" stroke="#17191a" stroke-width="5"/><circle cx="400" cy="640" r="90" fill="#ffd23f" stroke="#17191a" stroke-width="5"/><path d="M180 470 l26 70 74 6 -58 46 20 72 -62 -42 -62 42 20 -72 -58 -46 74 -6z" fill="#ff6b4a" stroke="#17191a" stroke-width="5" stroke-linejoin="round"/>`,
+    `<rect x="190" y="130" width="260" height="260" rx="40" fill="#a98cff" stroke="#17191a" stroke-width="5" transform="rotate(14 320 260)"/><circle cx="250" cy="620" r="120" fill="#fff" stroke="#17191a" stroke-width="5"/><path d="M120 470 q40 -40 80 0 t80 0 t80 0 t80 0" fill="none" stroke="#17191a" stroke-width="8" stroke-linecap="round"/>`,
+    `<circle cx="300" cy="300" r="170" fill="#ffd23f" stroke="#17191a" stroke-width="5"/><path d="M200 600 h260 v160 h-260z" fill="#fff" stroke="#17191a" stroke-width="5" transform="rotate(-8 330 680)"/><path d="M420 470 l20 52 56 4 -44 34 15 54 -47 -31 -47 31 15 -54 -44 -34 56 -4z" fill="#19a957" stroke="#17191a" stroke-width="5" stroke-linejoin="round"/>`,
+    `<circle cx="360" cy="230" r="110" fill="#19a957" stroke="#17191a" stroke-width="5"/><circle cx="220" cy="560" r="170" fill="#fff" stroke="#17191a" stroke-width="5"/><path d="M90 300 q50 -60 100 0 t100 0" fill="none" stroke="#17191a" stroke-width="8" stroke-linecap="round"/>`
+  ];
+  return `<div class="sec-deco"><svg viewBox="0 0 560 900"><g class="float">${shapes[n%shapes.length]}</g></svg></div>`;
+}
+const STAR = `<svg viewBox="0 0 100 100"><path d="M50 4 l13 32 34 3 -26 22 8 34 -29 -18 -29 18 8 -34 -26 -22 34 -3z" fill="#ff6b4a" stroke="#17191a" stroke-width="4" stroke-linejoin="round"/></svg>`;
+function slideHTML(s, i){
+  if(!s) return '<div class="slide end"><div>— 結束 —</div></div>';
+  let cls = s.cls||'', extra='';
+  if (/section/.test(cls)){ const n=secIndex(i); cls += ' '+SEC_COLORS[n%SEC_COLORS.length]; extra = secDeco(n); }
+  else if (/dark/.test(cls)){ extra = `<div class="dark-deco" style="left:-90px;bottom:-90px;width:300px;height:300px"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#ffd23f" stroke="#fff" stroke-width="2"/></svg></div><div class="dark-deco float" style="right:110px;top:90px;width:120px;height:120px">${STAR.replace('#ff6b4a','#19a957')}</div><div class="dark-deco" style="right:-60px;bottom:120px;width:200px;height:200px"><svg viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" rx="16" fill="#a98cff" transform="rotate(18 50 50)"/></svg></div>`; }
+  else if (!/cover|dark/.test(cls)){ const k=i%5; extra = `<div class="corner-deco k${k}">${k===3?STAR:''}</div>`; }
+  const folio = /cover|section|dark/.test(cls) ? '' : `<div class="folio">${i+1}</div>`;
+  return `<div class="slide ${cls}">${extra}${s.html}${folio}</div>`;
+}
+function fit(stage, box, center){
+  const w = box.clientWidth, h = box.clientHeight;
+  const sc = Math.min(w/1600, h/900);
+  stage.style.transform = `scale(${sc})`;
+  const wrap = stage.parentElement;
+  wrap.style.width = 1600*sc+'px'; wrap.style.height = 900*sc+'px';
+  if (center){ wrap.style.left = (w-1600*sc)/2+'px'; wrap.style.top = (h-900*sc)/2+'px'; }
+}
+function paint(stage, i, chrome, animate){
+  if (animate){ const changed = stage.dataset.i !== String(i); stage.classList.toggle('anim', changed); if(!changed){ const b=stage.querySelector('.blackout'); if(b){ b.classList.toggle('on', black); return; } } }
+  stage.dataset.i = i;
+  stage.innerHTML = slideHTML(D[i], i) + (chrome?`<div class="progress" style="width:${(i+1)/N*100}%"></div><div class="blackout${black?' on':''}"></div>`:'');
+}
+
+/* ---- sync between windows ---- */
+let bc = null; try{ bc = new BroadcastChannel('hakuhodo-deck'); }catch(e){}
+function send(){
+  const msg = {deck:'hakuhodo', idx, black};
+  if (bc) try{ bc.postMessage(msg) }catch(e){}
+  if (peer && !peer.closed) try{ peer.postMessage(msg,'*') }catch(e){}
+  if (window.opener && !window.opener.closed) try{ window.opener.postMessage(msg,'*') }catch(e){}
+}
+function receive(m){
+  if(!m || m.deck!=='hakuhodo') return;
+  if (m.idx!==idx || m.black!==black){ idx=m.idx; black=m.black; render(false); }
+}
+if (bc) bc.onmessage = e => receive(e.data);
+window.addEventListener('message', e => {
+  if (e.source && e.source!==window && (!peer || peer.closed)) peer = e.source;
+  if (e.data && e.data.deck==='hakuhodo-hello') send(); else receive(e.data);
+});
+
+const aStage = document.getElementById('aStage');
+const pStage = document.getElementById('pStage'), nStage = document.getElementById('nStage');
+function render(broadcast=true){
+  if (isPresenter){
+    paint(pStage, idx, true, true); paint(nStage, idx+1, false);
+    document.getElementById('pCount').innerHTML = `${idx+1} <span>/ ${N}</span>`;
+    const s = D[idx];
+    const notes = NOTES[s.id] || '<p class="muted">（這頁沒有講稿）</p>';
+    document.getElementById('pNotes').innerHTML = `<h4>${s.title||''}</h4>` + notes;
+    document.getElementById('pNotes').scrollTop = 0;
+    document.getElementById('pBlack').classList.toggle('active', black);
+    layoutPresenter();
+  } else {
+    paint(aStage, idx, true, true);
+  }
+  history.replaceState(null,'','#'+(idx+1));
+  markOverview();
+  if (broadcast) send();
+}
+function go(i){ i=Math.max(0,Math.min(N-1,i)); if(i===idx) return; idx=i; render(); }
+function toggleBlack(){ black=!black; render(); }
+function layoutAudience(){ fit(aStage, document.getElementById('audience'), false); }
+function layoutPresenter(){ fit(pStage, document.getElementById('pCur'), true); fit(nStage, document.getElementById('pNext'), true); }
+
+/* ---- timer ---- */
+let t0 = Date.now(), elapsed = 0, running = true;
+function tick(){
+  const ms = elapsed + (running ? Date.now()-t0 : 0);
+  const s = Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=s%60;
+  document.getElementById('pTimer').textContent = (h?h+':':'')+String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+  document.getElementById('pClock').textContent = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+}
+function openWin(url, name, feat){
+  const w = window.open(url, name, feat);
+  if (w){ peer = w; [600,1500,3000].forEach(t=>setTimeout(send,t)); }
+  else alert('瀏覽器擋住了彈出視窗，請允許此頁開啟彈出視窗後再按一次。');
+}
+const openAudience = ()=>openWin('index.html#'+(idx+1), 'hakuhodo-audience', 'width=1280,height=760');
+const openPresenter = ()=>openWin('index.html?view=presenter#'+(idx+1), 'hakuhodo-presenter', 'width=1400,height=860');
+
+/* ---- overview ---- */
+const ov = document.getElementById('overview'), ovGrid = document.getElementById('ovGrid');
+function buildOverview(){
+  ovGrid.innerHTML = D.map((s,i)=>`<div class="cell" data-i="${i}"><div class="n">${i+1}</div><div class="wrap"><div class="stage">${slideHTML(s,i)}</div></div></div>`).join('');
+  ovGrid.querySelectorAll('.cell').forEach(c=>c.onclick=()=>{ go(+c.dataset.i); toggleOverview(false); });
+}
+function sizeOverview(){ ovGrid.querySelectorAll('.cell').forEach(c=>{ c.querySelector('.stage').style.transform=`scale(${c.clientWidth/1600})`; }); }
+function markOverview(){ ovGrid.querySelectorAll('.cell').forEach(c=>c.classList.toggle('cur', +c.dataset.i===idx)); }
+function toggleOverview(on){
+  on = on===undefined ? !ov.classList.contains('on') : on;
+  ov.classList.toggle('on', on);
+  if(on){ if(!ovGrid.children.length) buildOverview(); sizeOverview(); markOverview(); const cur=ovGrid.querySelector('.cur'); if(cur) cur.scrollIntoView({block:'center'}); }
+}
+
+/* ---- input ---- */
+document.addEventListener('keydown', e=>{
+  if (e.ctrlKey||e.metaKey||e.altKey) return;
+  const k = e.key;
+  if (['ArrowRight','ArrowDown','PageDown',' ','Enter'].includes(k)){ e.preventDefault(); go(idx+1); }
+  else if (['ArrowLeft','ArrowUp','PageUp','Backspace'].includes(k)){ e.preventDefault(); go(idx-1); }
+  else if (k==='Home') go(0);
+  else if (k==='End') go(N-1);
+  else if (k==='b'||k==='B'||k==='.') toggleBlack();
+  else if (k==='g'||k==='G') toggleOverview();
+  else if (k==='Escape') toggleOverview(false);
+  else if ((k==='f'||k==='F') && !isPresenter){ if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); }
+  else if ((k==='p'||k==='P') && !isPresenter) openPresenter();
+});
+
+if (isPresenter){
+  document.title = '講者視窗｜劃界線';
+  document.getElementById('audience').style.display='none';
+  document.getElementById('hint').style.display='none';
+  document.getElementById('presenter').classList.add('on');
+  document.getElementById('pPrev').onclick = ()=>go(idx-1);
+  document.getElementById('pNextBtn').onclick = ()=>go(idx+1);
+  document.getElementById('pBlack').onclick = toggleBlack;
+  document.getElementById('pOverview').onclick = ()=>toggleOverview();
+  document.getElementById('pAudience').onclick = openAudience;
+  document.getElementById('tToggle').onclick = e=>{ if(running){elapsed+=Date.now()-t0;running=false;e.target.textContent='繼續';} else {t0=Date.now();running=true;e.target.textContent='暫停';} };
+  document.getElementById('tReset').onclick = ()=>{ elapsed=0; t0=Date.now(); };
+  let fs = parseFloat(store.get('nfs')) || 22;
+  const setFs = v=>{ fs=Math.max(14,Math.min(44,v)); document.documentElement.style.setProperty('--nfs', fs+'px'); store.set('nfs', fs); };
+  setFs(fs);
+  document.getElementById('fMinus').onclick = ()=>setFs(fs-2);
+  document.getElementById('fPlus').onclick = ()=>setFs(fs+2);
+  setInterval(tick, 500); tick();
+  window.addEventListener('resize', layoutPresenter);
+} else {
+  document.getElementById('openPresenter').onclick = openPresenter;
+  document.getElementById('audience').addEventListener('click', e=>{ if(e.clientX > innerWidth/3) go(idx+1); else go(idx-1); });
+  const hint = document.getElementById('hint');
+  let ht; const showHint=()=>{ hint.classList.remove('hide'); clearTimeout(ht); ht=setTimeout(()=>hint.classList.add('hide'), 5000); };
+  if (window.opener) hint.classList.add('hide'); else showHint();
+  if (new URLSearchParams(location.search).has('shot')) hint.style.display='none';
+  document.addEventListener('mousemove', e=>{ if(e.clientY>innerHeight-120) showHint(); });
+  window.addEventListener('resize', layoutAudience);
+  layoutAudience();
+}
+window.addEventListener('resize', ()=>{ if(ov.classList.contains('on')) sizeOverview(); });
+render(false);
+if (window.opener) setTimeout(()=>{ try{ window.opener.postMessage({deck:'hakuhodo-hello'},'*') }catch(e){} }, 300);
+})();
+</script>
+</body>
+</html>
